@@ -1,5 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
 
 
 class Instructor(models.Model):
@@ -7,30 +6,30 @@ class Instructor(models.Model):
     name = models.CharField(max_length=100)
     surname = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-    bio = models.TextField()
-    photo = models.URLField(max_length=500)
+    bio = models.TextField(blank=True)
+    photo = models.ImageField(upload_to='instructors/', blank=True, null=True)
     active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
     class Meta:
         ordering = ['-created_at']
-
+    
     def __str__(self):
         return f"{self.name} {self.surname}"
 
 
 class Motorcycle(models.Model):
-    """Motorcycle model for training bikes"""
+    """Motorcycle model for training fleet"""
     name = models.CharField(max_length=100)
-    image = models.URLField(max_length=500)
-    description = models.TextField()
+    image = models.ImageField(upload_to='motorcycles/', blank=True, null=True)
+    description = models.TextField(blank=True)
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
     class Meta:
         ordering = ['-created_at']
-
+    
     def __str__(self):
         return self.name
 

@@ -129,34 +129,48 @@ export const api = {
   },
 
   // Admin Methods
-  addInstructor: async (inst: Omit<Instructor, 'id'>) => {
-    await authFetch(`${API_BASE_URL}/instructors/`, {
+  addInstructor: async (data: { name: string; surname: string; email: string; bio: string; photo?: File; active: boolean; isAdmin: boolean }) => {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('surname', data.surname);
+    formData.append('email', data.email);
+    formData.append('bio', data.bio);
+    formData.append('active', String(data.active));
+    formData.append('is_admin', String(data.isAdmin));
+    if (data.photo) {
+      formData.append('photo', data.photo);
+    }
+
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/instructors/`, {
       method: 'POST',
-      body: JSON.stringify({
-        name: inst.name,
-        surname: inst.surname,
-        email: inst.email,
-        bio: inst.bio,
-        photo: inst.photo,
-        active: inst.active,
-        is_admin: inst.isAdmin,
-      }),
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
     });
+
+    if (!response.ok) throw new Error('Failed to add instructor');
+    return response.json();
   },
 
-  updateInstructor: async (id: string, updates: Partial<Instructor>) => {
-    await authFetch(`${API_BASE_URL}/instructors/${id}/`, {
+  updateInstructor: async (id: string, updates: Partial<Instructor> & { photo?: File }) => {
+    const formData = new FormData();
+    if (updates.name) formData.append('name', updates.name);
+    if (updates.surname) formData.append('surname', updates.surname);
+    if (updates.email) formData.append('email', updates.email);
+    if (updates.bio) formData.append('bio', updates.bio);
+    if (updates.active !== undefined) formData.append('active', String(updates.active));
+    if (updates.isAdmin !== undefined) formData.append('is_admin', String(updates.isAdmin));
+    if (updates.photo) formData.append('photo', updates.photo);
+
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/instructors/${id}/`, {
       method: 'PATCH',
-      body: JSON.stringify({
-        name: updates.name,
-        surname: updates.surname,
-        email: updates.email,
-        bio: updates.bio,
-        photo: updates.photo,
-        active: updates.active,
-        is_admin: updates.isAdmin,
-      }),
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
     });
+
+    if (!response.ok) throw new Error('Failed to update instructor');
+    return response.json();
   },
 
   deleteInstructor: async (id: string) => {
@@ -171,11 +185,24 @@ export const api = {
     });
   },
 
-  addMotorcycle: async (bike: Omit<Motorcycle, 'id'>) => {
-    await authFetch(`${API_BASE_URL}/motorcycles/`, {
+  addMotorcycle: async (data: { name: string; description: string; image?: File; active: boolean }) => {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('description', data.description);
+    formData.append('active', String(data.active));
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/motorcycles/`, {
       method: 'POST',
-      body: JSON.stringify(bike),
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
     });
+
+    if (!response.ok) throw new Error('Failed to add motorcycle');
+    return response.json();
   },
 
   deleteMotorcycle: async (id: string) => {

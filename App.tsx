@@ -538,15 +538,25 @@ const AdminDashboard = ({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => {
-                      const name = prompt("Edit Name:", inst.name);
-                      const surname = prompt("Edit Surname:", inst.surname);
-                      const email = prompt("Edit Email:", inst.email);
-                      const bio = prompt("Edit Bio:", inst.bio);
-                      const photo = prompt("Edit Photo URL:", inst.photo);
+                      const name = prompt("Edit Name:", inst.name) || inst.name;
+                      const surname = prompt("Edit Surname:", inst.surname) || inst.surname;
+                      const email = prompt("Edit Email:", inst.email) || inst.email;
+                      const bio = prompt("Edit Bio:", inst.bio) || inst.bio;
 
-                      if (name && surname && email && bio && photo) {
-                        api.updateInstructor(inst.id, { name, surname, email, bio, photo }).then(() => {
-                          const updated = allInsts.map(i => i.id === inst.id ? { ...i, name, surname, email, bio, photo } : i);
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = async (e: any) => {
+                        const file = e.target?.files?.[0];
+                        await api.updateInstructor(inst.id, { name, surname, email, bio, photo: file });
+                        const updated = await api.getAllInstructorsAdmin();
+                        setAllInsts(updated);
+                      };
+                      if (confirm('Upload new photo?')) {
+                        input.click();
+                      } else {
+                        api.updateInstructor(inst.id, { name, surname, email, bio }).then(async () => {
+                          const updated = await api.getAllInstructorsAdmin();
                           setAllInsts(updated);
                         });
                       }
@@ -584,7 +594,7 @@ const AdminDashboard = ({
               </div>
             ))}
             <button
-              onClick={async () => {
+              onClick={() => {
                 const name = prompt("Enter Instructor Name:");
                 if (!name) return;
                 const surname = prompt("Enter Instructor Surname:");
@@ -593,20 +603,26 @@ const AdminDashboard = ({
                 if (!email) return;
                 const bio = prompt("Enter Instructor Bio:");
                 if (!bio) return;
-                const photo = prompt("Enter Photo URL (or leave blank for default):");
                 const isAdmin = confirm("Is this instructor an admin?");
 
-                await api.addInstructor({
-                  name,
-                  surname,
-                  email,
-                  bio,
-                  photo: photo || `https://ui-avatars.com/api/?name=${name}+${surname}&background=random`,
-                  active: true,
-                  isAdmin
-                });
-                const updated = await api.getAllInstructorsAdmin();
-                setAllInsts(updated);
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = async (e: any) => {
+                  const file = e.target?.files?.[0];
+                  await api.addInstructor({
+                    name,
+                    surname,
+                    email,
+                    bio,
+                    photo: file,
+                    active: true,
+                    isAdmin
+                  });
+                  const updated = await api.getAllInstructorsAdmin();
+                  setAllInsts(updated);
+                };
+                input.click();
               }}
               className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center gap-2 text-gray-400 hover:border-brand hover:text-brand transition-colors"
             >
@@ -637,17 +653,25 @@ const AdminDashboard = ({
               </div>
             ))}
             <button
-              onClick={async () => {
+              onClick={() => {
                 const name = prompt("Enter Motorcycle Name:");
+                const description = prompt("Enter Description:") || 'New fleet addition';
                 if (name) {
-                  await api.addMotorcycle({
-                    name,
-                    active: true,
-                    description: 'New fleet addition',
-                    image: `https://picsum.photos/400/300?random=${Date.now()}`
-                  });
-                  const updated = await api.getAllMotorcyclesAdmin();
-                  setMotorcycles(updated);
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = async (e: any) => {
+                    const file = e.target?.files?.[0];
+                    await api.addMotorcycle({
+                      name,
+                      description,
+                      active: true,
+                      image: file
+                    });
+                    const updated = await api.getAllMotorcyclesAdmin();
+                    setMotorcycles(updated);
+                  };
+                  input.click();
                 }
               }}
               className="h-full min-h-[200px] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:border-brand hover:text-brand transition-colors"
