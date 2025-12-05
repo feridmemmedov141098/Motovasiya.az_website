@@ -135,6 +135,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",  # Alternative dev server
     "http://127.0.0.1:3000",
+    "http://192.168.1.139:3000",  # Network IP
 ]
 CORS_ALLOW_CREDENTIALS = True
 

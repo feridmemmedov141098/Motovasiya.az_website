@@ -11,6 +11,8 @@ const getAuthToken = (): string | null => {
 // Helper function to make authenticated requests
 const authFetch = async (url: string, options: RequestInit = {}) => {
   const token = getAuthToken();
+  console.log('authFetch - URL:', url, 'Token:', token ? 'Present' : 'Missing');
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -26,6 +28,7 @@ const authFetch = async (url: string, options: RequestInit = {}) => {
   });
 
   if (!response.ok) {
+    console.error('authFetch error:', response.status, response.statusText);
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 

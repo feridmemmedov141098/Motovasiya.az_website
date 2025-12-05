@@ -421,12 +421,20 @@ const AdminDashboard = ({
   // Refresh data for admin
   useEffect(() => {
     const refresh = async () => {
-      const bookingsData = await api.getBookings();
-      setBookings(bookingsData);
-      const instData = await api.getAllInstructorsAdmin();
-      setAllInsts(instData);
-      const bikesData = await api.getAllMotorcyclesAdmin();
-      setMotorcycles(bikesData);
+      try {
+        console.log('Refreshing admin data...');
+        const bookingsData = await api.getBookings();
+        console.log('Bookings:', bookingsData);
+        setBookings(bookingsData);
+        const instData = await api.getAllInstructorsAdmin();
+        console.log('Instructors:', instData);
+        setAllInsts(instData);
+        const bikesData = await api.getAllMotorcyclesAdmin();
+        console.log('Motorcycles:', bikesData);
+        setMotorcycles(bikesData);
+      } catch (error) {
+        console.error('Error refreshing admin data:', error);
+      }
     };
     refresh();
   }, [tab, setBookings, setMotorcycles]);
@@ -681,14 +689,12 @@ const App = () => {
   // Initialize Data
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [insts, bikes, bks] = await Promise.all([
+    const [insts, bikes] = await Promise.all([
       api.getInstructors(),
       api.getMotorcycles(),
-      api.getBookings()
     ]);
     setInstructors(insts);
     setMotorcycles(bikes);
-    setBookings(bks);
     setLoading(false);
   }, []);
 
