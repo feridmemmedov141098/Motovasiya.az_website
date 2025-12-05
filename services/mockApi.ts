@@ -1,131 +1,234 @@
 import { AppData, Booking, Customer, Instructor, Motorcycle } from '../types.ts';
 
-const STORAGE_KEY = 'motovasiya_db_v1';
+// Django API base URL
+const API_BASE_URL = 'http://localhost:8000/api';
 
-const INITIAL_DATA: AppData = {
-  instructors: [
-    {
-      id: 'inst-1',
-      name: 'Narmin',
-      surname: 'Mammadova',
-      email: 'narmin@motovasiya.az',
-      bio: 'Professional certified instructor. Passionate about teaching safe riding techniques to new riders.',
-      // Using a placeholder image of a female rider in gear. Replace with your actual hosted image URL.
-      photo: 'https://images.unsplash.com/photo-1622151834625-1e43d1a88b8f?auto=format&fit=crop&q=80&w=400', 
-      active: true,
-      isAdmin: true,
-    }
-  ],
-  motorcycles: [
-    {
-      id: 'bike-1',
-      name: 'Bajaj Pulsar NS160',
-      // Using a placeholder image of a red street motorcycle. Replace with your actual hosted image URL.
-      image: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&q=80&w=800',
-      description: '160cc Street Fighter. Agile, powerful, and perfect for training.',
-      active: true,
-    }
-  ],
-  bookings: [
-    {
-      id: 'booking-demo-1',
-      instructorId: 'inst-1',
-      motorcycleId: 'bike-1',
-      date: new Date().toISOString().split('T')[0], // Today
-      timeSlot: '10:00', // Busy slot
-      status: 'confirmed',
-      createdAt: new Date().toISOString(),
-      customer: {
-        name: 'Demo',
-        surname: 'User',
-        age: 25,
-        gender: 'Male',
-        heightCm: 175,
-        phone: '+994 50 000 00 00'
-      }
-    }
-  ]
+// Helper function to get auth token
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('auth_token');
 };
 
-// Helper to simulate DB
-const getDb = (): AppData => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DATA));
-    return INITIAL_DATA;
+// Helper function to make authenticated requests
+const authFetch = async (url: string, options: RequestInit = {}) => {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
-  return JSON.parse(stored);
-};
 
-const saveDb = (data: AppData) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
 };
 
 export const api = {
   getInstructors: async (): Promise<Instructor[]> => {
-    return getDb().instructors.filter(i => i.active);
+    const data = await fetch(`${API_BASE_URL}/instructors/`).then(res => res.json());
+    return data.map((inst: any) => ({
+      id: inst.id.toString(),
+      name: inst.name,
+      surname: inst.surname,
+      email: inst.email,
+      bio: inst.bio,
+      photo: inst.photo,
+      active: inst.active,
+      isAdmin: inst.is_admin,
+    }));
   },
-  
+
   getAllInstructorsAdmin: async (): Promise<Instructor[]> => {
-    return getDb().instructors;
+    const data = await authFetch(`${API_BASE_URL}/instructors/`);
+    return data.map((inst: any) => ({
+      id: inst.id.toString(),
+      name: inst.name,
+      surname: inst.surname,
+      email: inst.email,
+      bio: inst.bio,
+      photo: inst.photo,
+      active: inst.active,
+      isAdmin: inst.is_admin,
+    }));
   },
 
   getMotorcycles: async (): Promise<Motorcycle[]> => {
-    return getDb().motorcycles.filter(m => m.active);
+    const data = await fetch(`${API_BASE_URL}/motorcycles/`).then(res => res.json());
+    return data.map((bike: any) => ({
+      id: bike.id.toString(),
+      name: bike.name,
+      image: bike.image,
+      description: bike.description,
+      active: bike.active,
+    }));
   },
 
   getAllMotorcyclesAdmin: async (): Promise<Motorcycle[]> => {
-    return getDb().motorcycles;
+    const data = await authFetch(`${API_BASE_URL}/motorcycles/`);
+    return data.map((bike: any) => ({
+      id: bike.id.toString(),
+      name: bike.name,
+      image: bike.image,
+      description: bike.description,
+      active: bike.active,
+    }));
   },
 
   getBookings: async (): Promise<Booking[]> => {
-    return getDb().bookings;
+    const data = await authFetch(`${API_BASE_URL}/bookings/`);
+    return data.map((booking: any) => ({
+      id: booking.id.toString(),
+      instructorId: booking.instructorId.toString(),
+      motorcycleId: booking.motorcycleId.toString(),
+      date: booking.date,
+      timeSlot: booking.timeSlot,
+      customer: booking.customer,
+      status: booking.status,
+      createdAt: booking.createdAt,
+    }));
   },
 
   createBooking: async (booking: Omit<Booking, 'id' | 'createdAt' | 'status'>): Promise<Booking> => {
-    const db = getDb();
-    const newBooking: Booking = {
-      ...booking,
-      id: `bk-${Date.now()}`,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-    db.bookings.push(newBooking);
-    saveDb(db);
-    
-    // Simulate email notification
+    const response = await fetch(`${API_BASE_URL}/bookings/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(booking),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create booking');
+    }
+
+    const data = await response.json();
     console.log(`[EMAIL SENT] To Instructor ${booking.instructorId}: New request from ${booking.customer.name} ${booking.customer.phone}`);
-    
-    return newBooking;
+
+    return {
+      id: data.id.toString(),
+      instructorId: data.instructorId.toString(),
+      motorcycleId: data.motorcycleId.toString(),
+      date: data.date,
+      timeSlot: data.timeSlot,
+      customer: data.customer,
+      status: data.status,
+      createdAt: data.createdAt,
+    };
   },
 
   // Admin Methods
   addInstructor: async (inst: Omit<Instructor, 'id'>) => {
-    const db = getDb();
-    const newInst = { ...inst, id: `inst-${Date.now()}` };
-    db.instructors.push(newInst);
-    saveDb(db);
+    await authFetch(`${API_BASE_URL}/instructors/`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name: inst.name,
+        surname: inst.surname,
+        email: inst.email,
+        bio: inst.bio,
+        photo: inst.photo,
+        active: inst.active,
+        is_admin: inst.isAdmin,
+      }),
+    });
+  },
+
+  updateInstructor: async (id: string, updates: Partial<Instructor>) => {
+    await authFetch(`${API_BASE_URL}/instructors/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: updates.name,
+        surname: updates.surname,
+        email: updates.email,
+        bio: updates.bio,
+        photo: updates.photo,
+        active: updates.active,
+        is_admin: updates.isAdmin,
+      }),
+    });
+  },
+
+  deleteInstructor: async (id: string) => {
+    await authFetch(`${API_BASE_URL}/instructors/${id}/`, {
+      method: 'DELETE',
+    });
   },
 
   toggleInstructorStatus: async (id: string) => {
-    const db = getDb();
-    const idx = db.instructors.findIndex(i => i.id === id);
-    if (idx > -1) {
-      db.instructors[idx].active = !db.instructors[idx].active;
-      saveDb(db);
-    }
+    await authFetch(`${API_BASE_URL}/instructors/${id}/toggle_status/`, {
+      method: 'POST',
+    });
   },
 
   addMotorcycle: async (bike: Omit<Motorcycle, 'id'>) => {
-    const db = getDb();
-    const newBike = { ...bike, id: `bike-${Date.now()}` };
-    db.motorcycles.push(newBike);
-    saveDb(db);
+    await authFetch(`${API_BASE_URL}/motorcycles/`, {
+      method: 'POST',
+      body: JSON.stringify(bike),
+    });
   },
-  
+
   deleteMotorcycle: async (id: string) => {
-     const db = getDb();
-     db.motorcycles = db.motorcycles.filter(m => m.id !== id);
-     saveDb(db);
-  }
+    await authFetch(`${API_BASE_URL}/motorcycles/${id}/`, {
+      method: 'DELETE',
+    });
+  },
+
+  deleteBooking: async (id: string) => {
+    await authFetch(`${API_BASE_URL}/bookings/${id}/`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Authentication
+  login: async (email: string): Promise<{ token: string; instructor: Instructor }> => {
+    try {
+      console.log('Attempting login with email:', email);
+      const response = await fetch(`${API_BASE_URL}/auth/login/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Login error:', error);
+        throw new Error(error.error || 'Login failed');
+      }
+
+      const data = await response.json();
+      console.log('Login successful:', data);
+
+      // Store token
+      localStorage.setItem('auth_token', data.token);
+
+      return {
+        token: data.token,
+        instructor: {
+          id: data.instructor.id.toString(),
+          name: data.instructor.name,
+          surname: data.instructor.surname,
+          email: data.instructor.email,
+          bio: data.instructor.bio,
+          photo: data.instructor.photo,
+          active: data.instructor.active,
+          isAdmin: data.instructor.is_admin,
+        },
+      };
+    } catch (error) {
+      console.error('Login exception:', error);
+      throw error;
+    }
+  },
 };
